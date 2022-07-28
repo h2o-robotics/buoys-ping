@@ -16,10 +16,11 @@
 
 
 // Initialize variables
-const char* ssid = "ESP32-Access-Point";  // Wifi
+const char* ssid = "ESP32-Access-Point";  // Wifi 
 const char* password = "123456789";
 
-const char *mqtt_broker = "192.168.4.2";  // MQTT Broker info
+// MQTT Broker info
+const char *mqtt_broker = "192.168.4.2";  // IP address of the board the broker is running on
 const char *mqtt_username = "master";
 const char *mqtt_password = "public";
 const int mqtt_port = 1883;
@@ -297,7 +298,7 @@ void masterBuoyLoop(void * parameter){
   SafeString::setOutput(Serial);      // enable error messages and SafeString.debug() output to be sent to Serial
   output.connect(Serial2);            // where "output" will read from
   sfReader.connect(output);
-  
+
   while(1){
     // Check the connection to the MQTT broker
     if (!client.connected()) {
@@ -325,7 +326,7 @@ void masterBuoyLoop(void * parameter){
      emptyTab();
     }
 
-    // Save the number of the last ping
+    // Save the number of the previous ping
     lastPing = nbPing - 1;
   
     // Reset the value of sender

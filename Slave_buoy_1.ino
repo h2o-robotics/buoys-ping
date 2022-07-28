@@ -81,7 +81,7 @@ void reconnect() {
     
     if (client.connect(client_id.c_str(), mqtt_username, mqtt_password)) {
       Serial.println("connected");
-      client.subscribe("esp32/pinger/request/S1");   // subscribe to receive ping request
+      client.subscribe("esp32/pinger/request/S1");      // subscribe to receive ping request
     }
     
     else {
@@ -113,7 +113,7 @@ void callback(char* topic, byte* message, unsigned int length) {
   Serial2.println(messageTemp);
 }
 
-// Send a message
+// Send a RNG message
 void publishMQTT(SafeString& sfReader){
   // Convert sfReader which holds the ping response into a char*
   const char* one = "slave1 ";

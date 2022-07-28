@@ -76,7 +76,7 @@ void reconnect() {
     
     if (client.connect(client_id.c_str(), mqtt_username, mqtt_password)) {
       Serial.println("connected");
-      client.subscribe("esp32/pinger/request/S2");   // subscribe to receive ping request
+      client.subscribe("esp32/pinger/request/S2");    // subscribe to receive ping request
     }
     
     else {
