@@ -17,8 +17,6 @@ const int csPin = 5;            // LoRa radio chip select
 const int resetPin = 4;         // LoRa radio reset
 const int irqPin = 27;          // change for your board; must be a hardware interrupt pin
 
-String outgoing;                // outgoing message
-
 byte msgCount = 0;              // count of outgoing messages
 byte localAddress = 0xFF;       // address of this device
 byte destination = 0xAA;        // master buoy
@@ -43,7 +41,7 @@ void LoRaInit(){
 }
 
 
-// Send a message
+// Send a message to master buoy
 void sendMessage(SafeString& outgoing) {
   LoRa.beginPacket();                   // start packet
   LoRa.write(destination);              // add destination address
@@ -56,7 +54,7 @@ void sendMessage(SafeString& outgoing) {
 }
 
 
-// Receive a message
+// Receive a message from maester buoy
 void onReceive(int packetSize) {
   if (packetSize == 0) return;          // if there's no packet, return
 
@@ -90,7 +88,7 @@ void onReceive(int packetSize) {
 }
 
 
-// Counts an interval of time
+// Counts an interval of time in milliseconds
 boolean runEvery(unsigned long interval) {
   static unsigned long previousMillis = 0;
   unsigned long currentMillis = millis();
@@ -126,18 +124,19 @@ void loop() {
   // Release one byte from the buffer each 9600 baud
   input.nextByteOut();   
 
-  // Send text written on Serial over LoRa to master buoy
+  // Save text written on Serial
   while (Serial.available()){  
     if(sfReader.read())
       accoustSignal = sfReader;
   }
 
-  if (runEvery(interval)) {             // process every 5 seconds
-    if(accoustSignal.isEmpty() == 0)    // if the message to send is not empty
+  if (runEvery(interval)){                // process every 5 seconds
+    if(accoustSignal.isEmpty() == 0) {    // if the message to send is not empty
       Serial.println("\nSIGNAL SENT\n");
-      sendMessage(accoustSignal);
+      sendMessage(accoustSignal);         // send ping request
+    }
   }
   
-  // Receive the RNG tab
+  // Receive the RNG tab from master buoy
   onReceive(LoRa.parsePacket());
 }
