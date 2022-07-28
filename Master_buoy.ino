@@ -1,9 +1,8 @@
 /*
   MASTER BUOY
-  When receiving the "$G..." message, sends a PING Request to buoys 2 and 3,
+  When receiving the "$G..." message, sends a PING request to buoys 2 and 3,
   receive the calculated RNG by Wifi, pings the diver too and sends the 3 RNG
-  by LoRa to the board on the coats.
-  Repeats every 5 seconds until it receive a new "$G..." message.
+  via LoRa to the board on the coast.
 */
 
 // Include libraries
@@ -20,7 +19,7 @@ const char* ssid = "ESP32-Access-Point";  // Wifi
 const char* password = "123456789";
 WiFiServer server(80);
 
-const char *mqtt_broker = "192.168.4.2";  // MQTT Broker
+const char *mqtt_broker = "192.168.4.2";  // MQTT Broker info
 const char *mqtt_username = "emqx";
 const char *mqtt_password = "public";
 const int mqtt_port = 1883;
@@ -33,17 +32,10 @@ const int csPin = 5;                      // LoRa radio chip select
 const int resetPin = 4;                   // LoRa radio reset
 const int irqPin = 27;                    // change for your board; must be a hardware interrupt pin
 
-byte msgCount = 0;                        // count of outgoing messages
-
 byte localAddress = 0xAA;                 // address of this device
-const byte destinationB2 = 0xBB;          // destination of slave buoy #1
-const byte destinationB3 = 0xCC;          // destination of slave buoy #2
 const byte destinationCoast = 0xFF;       // destination of board on the coast
-
-int recipient;                            // recipient address
+byte msgCount = 0;                        // count of outgoing messages
 byte sender;                              // sender address
-byte incomingMsgId;                       // incoming msg ID
-byte incomingLength;                      // incoming msg length
 
 String range[3] = {};                     // tab to stock the RNG calculated by each buoy
 
@@ -77,108 +69,7 @@ void LoRaInit(){
   Serial.println("LoRa init succeeded.\n");
 }
 
-// Send a message
-void sendMessage(SafeString& outgoing, byte destination) {
-  LoRa.beginPacket();                   // start packet
-  LoRa.write(destination);              // add destination address
-  LoRa.write(localAddress);             // add sender address
-  LoRa.write(msgCount);                 // add message ID
-  LoRa.write(outgoing.length());        // add payload length
-  LoRa.print(outgoing);                 // add payload
-  LoRa.endPacket();                     // finish packet and send it
-  msgCount++;                           // increment message ID
-}
-
-// Receive a message from the coast board
-void onReceive(int packetSize) {
-  if (packetSize == 0) return;          // if there's no packet, return
-
-  // read packet header bytes:
-  recipient = LoRa.read();
-  sender = LoRa.read();
-  incomingMsgId = LoRa.read();
-  incomingLength = LoRa.read();
-
-  // read the message
-  String incoming;
-  while (LoRa.available()) {
-    incoming += (char)LoRa.read();
-  }
-
-  // check length for error
-  if (incomingLength != incoming.length()) {
-    Serial.println("error: message length does not match length");
-    return;                             // skip rest of function
-  }
-
-  // If the recipient isn't this device or broadcast,
-  if (recipient != localAddress || (sender != destinationCoast && sender != destinationB2 && sender != destinationB3)) {
-    return;                             // skip rest of function
-  }
-
-  // If message received is from the board on the coast, transmit it to buoys
-  if (sender == destinationCoast ){
-    accoustic = incoming.c_str();             // print the incoming message in the SafeString
-
-    sendMessage(accoustic, destinationB3);    // send the message over LoRa to slave buoy #2
-    delay(200);                               
-    sendMessage(accoustic, destinationB2);    // send the message over LoRa to slave buoy #1
-    delay(200);
-    Serial2.println(accoustic);               // print incoming message on Serial2 so main buoy pings
-
-    Serial.println("Ping request sent");
-  }
-}
-
-// Receive a message from slave buoys
-void callback(char* topic, byte* message, unsigned int length) {
-  Serial.print("Message arrived on topic: ");
-  Serial.println(topic);
-
-  // Read the received message
-  String messageTemp;
-  for (int i = 0; i < length; i++) 
-    messageTemp += (char)message[i];
-
-  // Check from wich slave buoy the message has been received
-  char *slave1, *slave2;
-  slave1 = strstr(messageTemp.c_str(), "slave1");      // check if the message received by master contains "slave1" 
-  slave2 = strstr(messageTemp.c_str(), "slave2");      // check if the message received by master contains "slave2"
-
-  // Treatment of the received message depending on the sender
-  if (slave1){
-    // Change the sender value
-    sender = destinationB1;
-    
-    // Remove the "slave1" string from the message
-    char* char_arr;
-    char_arr = &messageTemp[0];
-    str_rem(char_arr, "slave1 ");
-
-    // Stock the message in the RNG tab
-    range[1] = "B2 : " + messageTemp;              
-    Serial.println("Message from slave buoy #1");
-    Serial.println(range[1]);
-  }
-  else if (slave2){
-    // Change the sender value
-    sender = destinationB1;
-    
-    // Remove the "slave1" string from the message
-    char* char_arr;
-    char_arr = &messageTemp[0];
-    str_rem(char_arr, "slave2 ");
-
-    // Stock the message in the RNG tab
-    range[2] = "B3 : " + messageTemp;               
-    Serial.println("Message from slave buoy #2");
-    Serial.println(range[2]);
-  }
-  
-  Serial.println();
-}
-
-// Connect to the MQTT broker for Wifi communication
+// Connect to MQTT broker for Wifi communication
 void reconnect() {
   // Loop until we're reconnected
   while (!client.connected()) {
@@ -201,6 +92,122 @@ void reconnect() {
   }
 }
 
+// Send a message to the coast board
+void sendMessage(SafeString& outgoing, byte destination) {
+  LoRa.beginPacket();                   // start packet
+  LoRa.write(destination);              // add destination address
+  LoRa.write(localAddress);             // add sender address
+  LoRa.write(msgCount);                 // add message ID
+  LoRa.write(outgoing.length());        // add payload length
+  LoRa.print(outgoing);                 // add payload
+  LoRa.endPacket();                     // finish packet and send it
+  msgCount++;                           // increment message ID
+}
+
+// Receive a message from the coast board
+void onReceive(int packetSize) {
+  if (packetSize == 0) return;    // if there's no packet, return        
+
+  // read packet header bytes:
+  int recipient = LoRa.read();
+  sender = LoRa.read();
+  byte incomingMsgId = LoRa.read();
+  byte incomingLength = LoRa.read();
+
+  // read the message
+  String incoming = "";
+  while (LoRa.available()) {
+    incoming += (char)LoRa.read();
+  }
+
+  // check length for error
+  if (incomingLength != incoming.length()) {
+    Serial.println("error: message length does not match length");
+    return;                             // skip rest of function
+  }
+
+  // If the recipient isn't this device or broadcast,
+  if (recipient != localAddress || sender != destinationCoast) {
+    return;                             // skip rest of function
+  }
+
+  // If message received is from the coast, transmit it to buoys
+  if (sender == destinationCoast ){
+    accoustic = incoming.c_str();      // print the incoming message in the SafeString
+    
+    publishMQTT(accoustic, 1);         // send the message to slave buoys via MQTT
+    delay(200);                               
+    publishMQTT(accoustic, 2);   
+    delay(200);
+    
+    Serial2.println(accoustic);        // print incoming message on Serial2 so main buoy pings
+
+    Serial.println("PING REQUEST SENT \n");
+  }
+}
+
+// Send a message to slave buoys via MQTT
+void publishMQTT(SafeString& msg, int slave){
+  // Convert sfReader which holds the ping request into a char*
+  const char* msg_char = msg.c_str();
+
+  // Publish the ping response to the desired slave buoy
+  switch(slave){
+    case 1:
+      client.publish("esp32/pinger/request/S1", msg_char);
+      break;
+
+    case 2:
+      client.publish("esp32/pinger/request/S2", msg_char);
+      break;
+
+    default:
+      break;
+  }
+}
+
+// Receive a message from slave buoys via MQTT
+void callback(char* topic, byte* message, unsigned int length) {
+  Serial.print("Message arrived on topic: ");
+  Serial.println(topic);
+
+  // Read the received message
+  String messageTemp;
+  for (int i = 0; i < length; i++) 
+    messageTemp += (char)message[i];
+
+  // Check from wich slave buoy the message has been received
+  char *slave1, *slave2;
+  slave1 = strstr(messageTemp.c_str(), "slave1");      // check if the message received by master contains "slave1" 
+  slave2 = strstr(messageTemp.c_str(), "slave2");      // check if the message received by master contains "slave2"
+
+  // Treatment of the received message depending on the sender
+  if (slave1){
+    // Remove the "slave1" string from the message
+    char* char_arr;
+    char_arr = &messageTemp[0];
+    str_rem(char_arr, "slave1 ");
+
+    // Stock the message in the RNG tab
+    range[1] = "B2 : " + messageTemp;              
+    Serial.println("Message from slave buoy #1");
+    Serial.println(range[1]);
+  }
+  else if (slave2){
+    // Remove the "slave2" string from the message
+    char* char_arr;
+    char_arr = &messageTemp[0];
+    str_rem(char_arr, "slave2 ");
+
+    // Stock the message in the RNG tab
+    range[2] = "B3 : " + messageTemp;               
+    Serial.println("Message from slave buoy #2");
+    Serial.println(range[2]);
+  }
+  
+  Serial.println();
+}
+
 // Remove a word from a message
 int str_rem(char *s, char const *srem){
   int n = 0; char *p;
@@ -221,11 +228,10 @@ int str_rem(char *s, char const *srem){
 void responseB1(){
   // If something is written on Serial2
   if (sfReader.read()){
-    sender = localAddress;                    // change value of the sender
-    
     char *rng;
-    rng = strstr(sfReader.c_str(), "ACK");    // check if the message received by master contains "RNG"  
-    
+    rng = strstr(sfReader.c_str(), "ACK");    // check if the message contains "ACK"  
+
+    // If it don't, stock it in the tab
     if (!rng){
       range[0] = "B1 : ";
       range[0] += sfReader.c_str();
@@ -261,16 +267,16 @@ void setup() {
   while (!Serial);
 
   Serial.println("MAIN BUOY");
-
-  // Connect to MQTT broker
-  client.setServer(mqtt_broker, mqtt_port);
-  client.setCallback(callback);     // listen for incoming messages
   
   // Connect to Wi-Fi network with SSID and password
   createWifi();
 
   // Initialize LoRa
   LoRaInit();
+
+  // Connect to MQTT broker
+  client.setServer(mqtt_broker, mqtt_port);
+  client.setCallback(callback);     // listen for incoming messages
 
   // Prepare Serial2 to be read
   SafeString::setOutput(Serial);      // enable error messages and SafeString.debug() output to be sent to Serial
@@ -279,20 +285,20 @@ void setup() {
 }
 
 void loop() {
-  // Receive data from the coast board
-  onReceive(LoRa.parsePacket());
-  
   // Check the connection to the MQTT broker
   if (!client.connected()) {
     reconnect();
   }
   client.loop();
 
+  // Receive data from the coast board
+  onReceive(LoRa.parsePacket());
+
   // Stock the ping response received by master buoy in the RNG tab
   responseB1();  
 
   // Send the RNG tab to the board on the coast over LoRa
-  if(isTabFilled()){                            // if all fields are filled
+  if(isTabFilled()){                            // if all 3 RNG received
      for(int i=0; i<3; i++){
        msgToCoast = range[i].c_str();
        sendMessage(msgToCoast, destinationCoast);
@@ -302,4 +308,10 @@ void loop() {
      // Empty the RNG tab
      emptyTab();
   }
+
+  // Reset the value of sender
+  sender = 0;
+
+  // Release one byte from the buffer each 9600 baud
+  output.nextByteOut();
 }
