@@ -20,9 +20,11 @@ const int irqPin = 27;                      // change for your board; must be a 
 
 const char* ssid = "ESP32-Access-Point";    // SSID & password for Wifi
 const char* password = "123456789";
+WiFiServer server(80);
+bool wifiConnected = false;
 
 const char *mqtt_broker = "192.168.4.2";    // MQTT Broker info
-const char *mqtt_username = "emqx";
+const char *mqtt_username = "slave1";
 const char *mqtt_password = "public";
 const int mqtt_port = 1883;
 
@@ -45,23 +47,26 @@ void LoRaInit(){
   Serial.println("LoRa init succeeded.\n");
 }
 
-// Connect the board to a Wifi Access Point
-void setup_wifi(){
-  delay(10);
+// Create Wifi connection from the ESP32
+bool createWifi(){
+  try{
+    Serial.print("Setting AP (Access Point)…");
+    WiFi.softAP(ssid, password);
   
-  // We start by connecting to a WiFi network
-  Serial.println();
-  Serial.print("Connecting to ");
-  Serial.println(ssid);
+    IPAddress IP = WiFi.softAPIP();
+    Serial.print("AP IP address: ");
+    Serial.println(IP);
+    
+    server.begin();
 
-  WiFi.begin(ssid, password);
-  
-  while (WiFi.status() != WL_CONNECTED) { // Wait for the Wi-Fi to connect
-      delay(1000);
+    wifiConnected = true;
+    Serial.println("Wifi creation succeed !\n");
+    return true;
   }
-  Serial.println("Connection established!");  
-  Serial.print("IP address:\t");
-  Serial.println(WiFi.localIP());
+  catch(bool wifiConnected){
+    Serial.println("AP Wifi creation failed !\n");
+    return false;
+  }
 }
 
 // Check the connection to MQTT broker
@@ -76,7 +81,7 @@ void reconnect() {
     
     if (client.connect(client_id.c_str(), mqtt_username, mqtt_password)) {
       Serial.println("connected");
-      client.subscribe("esp32/pinger/request/S1");   // subscribe to receive ping request
+      client.subscribe("esp32/pinger/request/S1");      // subscribe to receive ping request
     }
     
     else {
@@ -108,7 +113,7 @@ void callback(char* topic, byte* message, unsigned int length) {
   Serial2.println(messageTemp);
 }
 
-// Send a message
+// Send a RNG message
 void publishMQTT(SafeString& sfReader){
   // Convert sfReader which holds the ping response into a char*
   const char* one = "slave1 ";
@@ -134,9 +139,10 @@ void setup() {
 
   Serial.println("SLAVE BUOY #1");
 
-  // Connect to Wifi
-  setup_wifi();
-
+  // Connect to Wi-Fi network with SSID and password
+  while(wifiConnected == false)
+    createWifi();
+  
   // Initialize LoRa
   LoRaInit();
 

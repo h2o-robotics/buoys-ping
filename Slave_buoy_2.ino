@@ -22,7 +22,7 @@ const char* ssid = "ESP32-Access-Point";    // SSID & password for Wifi
 const char* password = "123456789";
 
 const char *mqtt_broker = "192.168.4.2";    // MQTT Broker info
-const char *mqtt_username = "emqx";
+const char *mqtt_username = "slave2";
 const char *mqtt_password = "public";
 const int mqtt_port = 1883;
 
@@ -76,7 +76,7 @@ void reconnect() {
     
     if (client.connect(client_id.c_str(), mqtt_username, mqtt_password)) {
       Serial.println("connected");
-      client.subscribe("esp32/pinger/request/S2");   // subscribe to receive ping request
+      client.subscribe("esp32/pinger/request/S2");    // subscribe to receive ping request
     }
     
     else {
