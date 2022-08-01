@@ -9,7 +9,7 @@ The architecture of the system is as follows:
 ![software%20architecture](https://user-images.githubusercontent.com/60877425/182219691-0d513336-d02f-46c3-8320-1a90ee0f3431.png)
 
 
-# Hardaware requirement
+# Hardaware requirements
 
 You will need the following equipement :
 
