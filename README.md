@@ -54,7 +54,7 @@ This section explain the different steps to run the project properly.
 
 * Step 2 : Put the coast's and the three buoys' ESP32 boards under power. Please note that the buoys boards must be turned on in a specific order to allow the establishment of the MQTT communication : first the master buoy, then the slave buoy 1 and finally the other slave buoy (slave 2). 
 
-* Step 3 : On the CU's phone, download an mobile application providing a serial USB terminal (_Serial USB Terminal_ or _Bluetooth for Arduino_ for example). Conect it to the _Coast Board_. From the terminal, send the address(es) of the AU( s) to be pinged. If only one AU is to be pinged, the message to be sent should be of the form "$G,<NUM>,RNG", where NUM corresponds to the three digits identifier of the unit. If several AUs are to be pinged, then the message to be sent should be of the form "$G,<NUM1>,RNG;$G,<NUM2>,RNG". Be careful! Do not add a space before or after the semicolon,  at the end of the message or between words, otherwise the ping of some AUs will not be taken into account.
+* Step 3 : On the CU's phone, download an mobile application providing a terminal (_Serial USB Terminal_ or _Bluetooth for Arduino_ for example). Conect it to the _Coast Board_. From the terminal, send the address(es) of the AU( s) to be pinged. If only one AU is to be pinged, the message to be sent should be of the form "$G,<NUM>,RNG", where NUM corresponds to the three digits identifier of the unit. If several AUs are to be pinged, then the message to be sent should be of the form "$G,<NUM1>,RNG;$G,<NUM2>,RNG". Be careful! Do not add a space before or after the semicolon,  at the end of the message or between words, otherwise the ping of some AUs will not be taken into account.
 
 
 ## Data back-up
