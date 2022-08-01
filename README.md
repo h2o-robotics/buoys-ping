@@ -7,4 +7,11 @@ groups of three buoys (GoB), placed on the surface of the water, and one or more
 located on the shore or onboard a boat controls it.
 
 Each of the 4 codes provided corresponds to one of the hardware listed above :
-		• 
+
+• CU : ___Coast_board.ino___
+
+• Master buoy : ___Master_buoy.ino___
+
+• Slave buoys 1 & 2 : ___Slave_buoy_1.ino___ & ___Slave_buoy_2.ino___
+    
+The architecture of the system is as follows: ![Screenshot](screenshot.png)
