@@ -14,7 +14,7 @@ Each of the 4 codes provided corresponds to one of the hardware listed above :
     
 The architecture of the system is as follows: 
 
-![Screenshot](software%20architecture.png)
+![Software architecture](software%20architecture.png "Software architecture of the project")
 
 
 # Software requirements
