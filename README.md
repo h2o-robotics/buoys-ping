@@ -14,4 +14,4 @@ Each of the 4 codes provided corresponds to one of the hardware listed above :
 
 • Slave buoys 1 & 2 : ___Slave_buoy_1.ino___ & ___Slave_buoy_2.ino___
     
-The architecture of the system is as follows: ![Screenshot](screenshot.png)
+The architecture of the system is as follows: ![Screenshot](software%20architecture.png)
