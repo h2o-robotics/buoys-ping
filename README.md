@@ -5,16 +5,10 @@
 The objective of this project is the development of an underwater localization and communication system. This system is composed of one
 group of three buoys (GoB), placed on the surface of the water, and one or more acoustic units (AU), immersed under the water. A central unit (CU), 
 located on the shore or onboard a boat controls it.
-
-Each of the 4 codes provided corresponds to one of the hardware listed above :
-
-    • CU : ___Coast_board.ino___
-    • Master buoy : ___Master_buoy.ino___
-    • Slave buoys 1 & 2 : ___Slave_buoy_1.ino___ & ___Slave_buoy_2.ino___
     
 The architecture of the system is as follows: 
 
-![Software architecture](software%20architecture.png "Software architecture of the project")
+![software%20architecture](https://user-images.githubusercontent.com/60877425/182219691-0d513336-d02f-46c3-8320-1a90ee0f3431.png)
 
 
 # Software requirements
@@ -23,27 +17,36 @@ This project has been entirely coded in C++ on the Arduino IDE. On the IDE, you 
 
 To compile it, you will also need to download the following libraries:
 
-    • LoRa by Sandeep Mistry - from the IDE library manager
-    • ThingsBoard by ThingsBoard Team - from the IDE library manager
-    • SafeString by PowerBroker2 - from GitHub : https://github.com/PowerBroker2/SafeString.git
-    • PubSubClient by Nick O'Leary - from the IDE library manager
-    • sMQTTBroker by Vyacheslav Shiryaev - from the IDE library manager
-    • ArduinoHttpClient by Arduino - from the IDE library manager
-    • ArduinoJson by Benoît Blanchon - from the IDE library manager
+* LoRa by Sandeep Mistry - from the IDE library manager
+* ThingsBoard by ThingsBoard Team - from the IDE library manager
+* SafeString by PowerBroker2 - from GitHub : https://github.com/PowerBroker2/SafeString.git
+* PubSubClient by Nick O'Leary - from the IDE library manager
+* sMQTTBroker by Vyacheslav Shiryaev - from the IDE library manager
+* ArduinoHttpClient by Arduino - from the IDE library manager
+* ArduinoJson by Benoît Blanchon - from the IDE library manager
 
 The SPI and WiFi libraries are also required but are normally installed automatically with the installation of the ESP32 board on the IDE.
 
 
 # How to use the system ?
 
+## Codes
+
+Each of the 4 codes provided corresponds to one of the hardware listed above :
+
+* CU : ___Coast_board.ino___
+* Master buoy : ___Master_buoy.ino___
+* Slave buoys 1 & 2 : ___Slave_buoy_1.ino___ & ___Slave_buoy_2.ino___
+
 ## Procedure
 
 This section explain the different steps to respect to use the device properly. 
 
-    • Step 1 : Download each of the 4 codes on 4 different boards.
-    • Step 2 : Turn on the CU's and the three buoys' ESP32 boards. Please note that the buoys boards must be switched on in a specific order to 
-    allow them to be connected to the WiFi AP and to the broker, for MQTT communication : first the master buoy, then the slave buoy (number 1) with the WiFi AP and finally the other slave buoy (number 2). 
-    • Step 3 : On a phone, download an mobile application providing a serial USB terminal (Serial USB Terminal or Bluetooth for Arduino for example). From this terminal, send the address(es) of the AU( s) to be pinged. If only one AU is to be pinged, the message to be sent should be of the form "$G,<NUM>,RNG", where NUM corresponds to the three digits identifier of the unit. If several AUs are to be pinged, then the message to be sent should be of the form "$G,<NUM1>,RNG;$G,<NUM2>,RNG". Be careful! Do not add a space before or after the semicolon,  at the end of the message or between words, otherwise the ping of some AUs will not be taken into account.
+* Step 1 : Download each of the 4 codes on 4 different boards.
+
+* Step 2 : Turn on the CU's and the three buoys' ESP32 boards. Please note that the buoys boards must be switched on in a specific order to allow them to be connected to the WiFi AP and to the broker, for MQTT communication : first the master buoy, then the slave buoy (number 1) with the WiFi AP and finally the other slave buoy (number 2). 
+
+* Step 3 : On a phone, download an mobile application providing a serial USB terminal (Serial USB Terminal or Bluetooth for Arduino for example). Conect it to the _Coast Board_. From the terminal, send the address(es) of the AU( s) to be pinged. If only one AU is to be pinged, the message to be sent should be of the form "$G,<NUM>,RNG", where NUM corresponds to the three digits identifier of the unit. If several AUs are to be pinged, then the message to be sent should be of the form "$G,<NUM1>,RNG;$G,<NUM2>,RNG". Be careful! Do not add a space before or after the semicolon,  at the end of the message or between words, otherwise the ping of some AUs will not be taken into account.
 
 
 ## Data back-up
