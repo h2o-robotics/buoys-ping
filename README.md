@@ -14,8 +14,8 @@ The architecture of the system is as follows:
 You will need the following equipement :
 
 * For the CU : 1 mobile phone & 1 ESP32 board equipped with LoRa
-* For the master buoy : 1 ESP32 boards equipped with LoRa, 1 PCB with a Nordic micro-controller, 1 nano-modem & 1 transducer
-* For each slave buoy : 1 ESP32 boards, 1 PCB with a Nordic micro-controller, 1 nano-modem & 1 transducer
+* For the master buoy : 1 ESP32 board equipped with LoRa, 1 PCB with a Nordic micro-controller, 1 nano-modem & 1 transducer
+* For each slave buoy : 1 ESP32 board, 1 PCB with a Nordic micro-controller, 1 nano-modem & 1 transducer
 
 
 # Software requirements
