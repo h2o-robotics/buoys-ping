@@ -60,7 +60,7 @@ This section explain the different steps to run the project properly.
 ## Data back-up
 
 The data retrieved by the CU are saved on a web server. To access it, a ThingsBoard dashboard has
-been created, which makes it easier to visualise. It is very basic : it only contains a time-series table, displaying the data received by the CU in the last 24 hours. To access the dashboard, from a computer, simply go to the following address : https://demo.thingsboard.io/dashboard/5bd46900-069e-11ed-8857-89a1708eda91?publicId=e95a4020-0e72-11ed-9c79-ad222c995ab7.
+been created, which makes it easier to visualise. It is very basic : it only contains a time-series table, displaying the data received in the last 24 hours. To access the dashboard, from a computer, simply go to the following address : https://demo.thingsboard.io/dashboard/5bd46900-069e-11ed-8857-89a1708eda91?publicId=e95a4020-0e72-11ed-9c79-ad222c995ab7.
 
 Be careful ! The CU board has to be connected to the same network than the computer for the connection to the server to be established. Change the WiFi AP of the board in the ___Coast_board.ino___ code if needed.
 
