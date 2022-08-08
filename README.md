@@ -52,9 +52,13 @@ This section explain the different steps to run the project properly.
 
 * Step 1 : Download each of the 4 codes on 4 different ESP32 boards.
 
-* Step 2 : Put the coast's and the three buoys' ESP32 boards under power. Please note that the buoys boards must be turned on in a specific order to allow the establishment of the MQTT communication : first the master buoy, then the slave buoy 1 and finally the other slave buoy (slave 2). 
+* Step 2 : Change the IP address of the broker in the ___Master_buoy___, ___Slave_buoy_1___ and ___Slave_buoy_1___ codes, so the MQTT communication can be established. To do so, the value of the ___mqtt_broker___ variable has to be changed with the correct IP address. Since the broker code is run by the master buoy, its IP address corresponds to the master’s IP address. Thus, to retrieve the master’s IP address, open the Serial Monitor on Arduino IDE and look at the line where it is written ___”IP address”___. Then, copy this address and paste it to change the ___mqtt_broker___ variable value in each of the 3 codes.
 
-* Step 3 : On the CU's phone, download an mobile application providing a terminal (_Serial USB Terminal_ or _Bluetooth for Arduino_ for example). Conect it to the _Coast Board_. From the terminal, send the address(es) of the AU( s) to be pinged. If only one AU is to be pinged, the message to be sent should be of the form "$G,<NUM>,RNG", where NUM corresponds to the three digits identifier of the unit. If several AUs are to be pinged, then the message to be sent should be of the form "$G,<NUM1>,RNG;$G,<NUM2>,RNG". Be careful! Do not add a space before or after the semicolon,  at the end of the message or between words, otherwise the ping of some AUs will not be taken into account.
+* Step 3 : Configure the WiFi AP on which the CU’s ESP32 board will be connected. This WiFi connection is intended to send RNG data from the CU to the Thingsboard dashboard. To do so, in the ___Master_buoy___ code, the value of the ___ssid___ variable has to be changed with name of the local WiFi AP you want the board to be connected to. Similarly, the value of the ___password___ variable has to be changed.
+
+* Step 3 : Put the coast's and the three buoys' ESP32 boards under power. Please note that the buoys boards must be turned on in a specific order to allow the establishment of the MQTT communication : first the master buoy, then the slave buoy 1 and finally the other slave buoy (slave 2). 
+
+* Step 4 : On the CU's phone, download an mobile application providing a terminal (_Serial USB Terminal_ or _Bluetooth for Arduino_ for example). Conect it to the _Coast Board_. From the terminal, send the address(es) of the AU( s) to be pinged. If only one AU is to be pinged, the message to be sent should be of the form "$G,<NUM>,RNG", where NUM corresponds to the three digits identifier of the unit. If several AUs are to be pinged, then the message to be sent should be of the form "$G,<NUM1>,RNG;$G,<NUM2>,RNG". Be careful! Do not add a space before or after the semicolon,  at the end of the message or between words, otherwise the ping of some AUs will not be taken into account.
 
 
 ## Data back-up
