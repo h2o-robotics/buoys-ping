@@ -101,7 +101,7 @@ void sendMessage(String& outgoing) {
 
   Serial.println();
   Serial.print("\nSIGNAL SENT : "); Serial.println(outgoing);
-  Serial.print();
+  Serial.println();
 }
 
 
