@@ -20,11 +20,12 @@ const char* ssid = "ESP32-Access-Point";  // Wifi
 const char* password = "123456789";
 
 // MQTT Broker info
-const char *mqtt_broker = "192.168.4.2";  // IP address of the board the broker is running on
+String mqtt_broker;                        // IP address of the board the broker is running on (ie. master)
 const char *mqtt_username = "master";
 const char *mqtt_password = "public";
 const int mqtt_port = 1883;
 sMQTTBroker broker;                       // broker instanciation
+bool MQTTconnection = false;              // stock the MQTT connection state
 
 WiFiClient espClient;                     // creation of a client for the broker
 PubSubClient client(espClient);           // client instanciation
@@ -41,13 +42,13 @@ byte sender;                              // sender address
 
 String range = "";                        // stock the RNG calculated by each buoy
 
-int nbPing = 0, lastPing = 0;             // current and last ping number counters
-bool msgReceived1 = false, msgReceived2 = false, msgReceived3 = false;    // boolean variables to check if a message from slaves 1/2 or master has been received
+int nbPing = 0, lastPing = 0;             // current and last ping counters
+int msgReceived1 = 0, msgReceived2 = 0, msgReceived3 = 0;    // variables to check if a RNG data from slaves 1/2 or master has been received
 
 createBufferedOutput(output, 255, DROP_UNTIL_EMPTY);  // create an extra output buffer for the Serial2
 createSafeStringReader(sfReader, 50, "\r\n");         // create SafeStringReader to hold messages written on Serial2
 createSafeString(accoustic, 50);                      // SafeStringReader holding the accoustic signal to cast
-createSafeString(msgToCoast, 100);                    // SafeStringReader holding the final message to sent to the coast board
+createSafeString(msgToCoast, 2000);                   // SafeStringReader holding the final message to sent to the coast board
 
 
 // Connect the board to a Wifi Access Point
@@ -83,6 +84,10 @@ void LoRaInit(){
 
 // Connect to MQTT broker for Wifi communication
 void reconnect() {
+  // Save the IP address of the device in a char* variable
+  IPAddress ip = WiFi.localIP();
+  mqtt_broker = String(ip[0]) + "." + String(ip[1]) + "." + String(ip[2]) + "." + String(ip[3]);
+
   // Loop until we're reconnected
   while (!client.connected()) {
     Serial.print("Attempting MQTT connection...");
@@ -91,6 +96,9 @@ void reconnect() {
     if (client.connect("ESP32Client", mqtt_username, mqtt_password)) {
       Serial.println("connected");
       client.subscribe("esp32/pinger/RNG");     // subscribe
+
+      MQTTconnection = true;                    // MQTT connection established
+      msgToCoast = "MASTER BUOY : MQTT connection established";
     }
     
     else {
@@ -147,7 +155,7 @@ void onReceive(int packetSize) {
   if (sender == destinationCoast ){
     accoustic = incoming.c_str();      // print the incoming message in the SafeString
     
-    publishMQTT(accoustic, 1);         // send the message to slave buoys via MQTT
+    publishMQTT(accoustic, 1);         // send the ping request to slave buoys via MQTT
     delay(200);                               
     publishMQTT(accoustic, 2);   
     delay(200);
@@ -191,14 +199,15 @@ void callback(char* topic, byte* message, unsigned int length) {
   for (int i = 0; i < length; i++) 
     messageTemp += (char)message[i];
 
-  // Check from wich slave buoy the message has been received
-  char *slave1, *slave2;
+  // Check which type of message has been received from the slave buoys (MQTT connection or RNG data ?)
+  char *slave1, *slave2, *MQTT;
   slave1 = strstr(messageTemp.c_str(), "slave1");      // check if the message received by master contains "slave1" 
   slave2 = strstr(messageTemp.c_str(), "slave2");      // check if the message received by master contains "slave2"
+  MQTT = strstr(messageTemp.c_str(), "MQTT");          // check if the message received by master contains "MQTT" 
 
-  // Treatment of the received message depending on the sender
+  // Treatment of the received message depending on the type of message
   if (slave1){
-    msgReceived2 = true;               // 1 message has been received from slave 1
+    msgReceived2 ++;               // 1 RNG data was received from slave 1
     
     // Concatenate the 2 messages in one
     const char* one = "\nB2 : ";
@@ -214,7 +223,7 @@ void callback(char* topic, byte* message, unsigned int length) {
     Serial.println(range);
   }
   else if (slave2){
-    msgReceived3 = true;                // 1 message has been received from slave 2
+    msgReceived3 ++;                // 1 RNG data was received from slave 2
     
     // Concatenate the 2 messages in one
     const char* one = "\nB3 : ";
@@ -229,6 +238,10 @@ void callback(char* topic, byte* message, unsigned int length) {
     Serial.println("Message from slave buoy #2");
     Serial.println(range);
   }
+  else if(MQTT){
+    MQTTconnection = true;              // MQTT connection established
+    msgToCoast = messageTemp.c_str();
+  }
   
   Serial.println();
 }
@@ -237,32 +250,27 @@ void callback(char* topic, byte* message, unsigned int length) {
 void responseB1(){
   // If something is written on Serial2
   if (sfReader.read()){
-    char *rng;
-    rng = strstr(sfReader.c_str(), "ACK");    // check if the message contains "ACK"  
-
-    // If it don't, stock it in the tab
-    if (!rng){
-      msgReceived1 = true;                    // 1 message has been received from master
-      
-      range += "\nB1 : ";
-      range += sfReader.c_str();
-      Serial.println(range);
-    }
+    msgReceived1 ++;                    // 1 RNG data was received from master
+    
+    range += "\nB1 : ";
+    range += sfReader.c_str();
+    Serial.println(range);
   }
 }
 
-// Check if the RNG tab has all its cases filled
-int isTabFilled() {
+// Check if master received all the RNG data it is supposed to or not
+bool isTabFilled() {
   // if we are waiting for the responses of ping #N and we receive it from every buoys
-  if(nbPing == lastPing+1 && (msgReceived1 == true && msgReceived2 == true && msgReceived3 == true))
-    return 1;   // true
+  // (each buoy has to receive 2 messages for the ping to be correctly done : one for the ACK and the other for the RNG)
+  if(nbPing == lastPing+1 && (msgReceived1 == 2 && msgReceived2 == 2 && msgReceived3 == 2))
+    return true;  // true, we send data
 
-  // if we pass to a new ping #N+1
-  else if (nbPing != lastPing+1 && (msgReceived1 == true || msgReceived2 == true || msgReceived3 == true))  
-    return 1;   // false, but we send data before emptying the tab
+  // if we pass to a new ping #N+1 but we didn't receive the response from all the buoys
+  else if (nbPing != lastPing+1 && (msgReceived1 != 0 || msgReceived2 != 0 || msgReceived3 != 0))  
+    return true;   // false, but we still send data before emptying the tab
 
   // if we are waiting for the responses of ping #N and we don't receive it from every buoy
-  return 0;  // false, but we don't do nothing 
+  return false;  // false, but we don't do nothing (either we wait until we receive every responses or the ping #N+1)
 }
 
 // Empty the RNG tab 
@@ -282,8 +290,11 @@ void brokerLoop(void * parameter){
   Serial.println("Broker initialized");
   
   // Update message received
-  while(1) 
+  while(1) {
     broker.update();
+    delay(10);        // to avoid watchdog error and reboot of the board
+  }
+    
 }
 
 void masterBuoyLoop(void * parameter){ 
@@ -291,7 +302,7 @@ void masterBuoyLoop(void * parameter){
   LoRaInit();
 
   // Connect to MQTT broker
-  client.setServer(mqtt_broker, mqtt_port);
+  client.setServer(mqtt_broker.c_str(), mqtt_port);
   client.setCallback(callback);       // listen for incoming messages
 
   // Prepare Serial2 to be read
@@ -305,6 +316,15 @@ void masterBuoyLoop(void * parameter){
       reconnect();
     }
     client.loop();
+
+    // If the MQTT connection is established with 1 of the 3 buoys
+    if(MQTTconnection){
+      // Send a connexion confirmation message to the coast board
+      sendMessage(msgToCoast, destinationCoast);
+
+      // Change the connection state so †he message is sent just once
+      MQTTconnection = false;
+    }
   
     // Receive data from the coast board
     onReceive(LoRa.parsePacket());
@@ -313,14 +333,13 @@ void masterBuoyLoop(void * parameter){
     responseB1();  
   
     // Send the RNG tab to the board on the coast over LoRa
-    int res = isTabFilled();
-    if(res == 1){                            // if at least 1 of the 3 RNG is received
+    if(isTabFilled()){                            // if at least 1 of the 3 RNG is received
      msgToCoast = range.c_str();
      sendMessage(msgToCoast, destinationCoast);
      Serial.println("MESSAGE SENT.\n");
 
      // Reinitialization of the variable for the receive check
-     msgReceived1 = false, msgReceived2 = false, msgReceived3 = false;
+     msgReceived1 = 0, msgReceived2 = 0, msgReceived3 = 0;
      
      // Empty the RNG tab
      emptyTab();
@@ -339,7 +358,7 @@ void masterBuoyLoop(void * parameter){
 }
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-TaskHandle_t Task1, Task2; // Task handles serve the purpose of referencing that particular task in other parts of the code
+TaskHandle_t Task1, Task2; // Task handles serve the purpose of referencing a particular task in other parts of the code
 
 void setup() {
   // Initialize serial

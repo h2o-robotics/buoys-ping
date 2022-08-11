@@ -23,16 +23,20 @@ const char* password = "123456789";
 WiFiServer server(80);
 bool wifiConnected = false;
 
-const char *mqtt_broker = "192.168.4.2";    // MQTT Broker info
+const char *mqtt_broker = "192.168.4.2";    // MQTT Broker info : has to be changed depending on the board the broker is running on
 const char *mqtt_username = "slave1";
 const char *mqtt_password = "public";
 const int mqtt_port = 1883;
+bool MQTTconnection = false;                // stock the MQTT connection state
+
+String messageTemp;                         // message received by MQTT
 
 WiFiClient espClient;                       // creation of a client for the broker
 PubSubClient client(espClient);
 
 createBufferedOutput(output, 255, DROP_UNTIL_EMPTY);  // create an extra output buffer for the Serial2
 createSafeStringReader(sfReader, 50, "\r\n");         // create SafeStringReader to hold messages written on Serial
+createSafeString(MQTTstate, 100);             // create a SafeString to hold the state of the MQTT connection of the buoy
 
 
 // Initialization of LoRa
@@ -82,6 +86,8 @@ void reconnect() {
     if (client.connect(client_id.c_str(), mqtt_username, mqtt_password)) {
       Serial.println("connected");
       client.subscribe("esp32/pinger/request/S1");      // subscribe to receive ping request
+
+      MQTTconnection = true;                    // MQTT connection established
     }
     
     else {
@@ -100,7 +106,6 @@ void callback(char* topic, byte* message, unsigned int length) {
   Serial.print("Message arrived on topic: ");
   Serial.print(topic);
   Serial.print(". Message: ");
-  String messageTemp;
   
   // Read the received message
   for (int i = 0; i < length; i++) {
@@ -111,22 +116,33 @@ void callback(char* topic, byte* message, unsigned int length) {
 
   // Print the message on Serial2
   Serial2.println(messageTemp);
+  messageTemp = "";                 // clear variable
 }
 
 // Send a RNG message
-void publishMQTT(SafeString& sfReader){
-  // Convert sfReader which holds the ping response into a char*
-  const char* one = "slave1 ";
-  const char* two = sfReader.c_str();
-
-  // Concatenate the 2 char
+void publishMQTT(SafeString& msg, bool RNG){
   char buf[100];
-  strcpy(buf, one);
-  strcat(buf, two);
+  
+  // If the message to be sent is a RNG data
+  if(RNG){
+    // Convert sfReader which holds the ping response into a char*
+    const char* one = "slave1 ";
+    const char* two = msg.c_str();
+  
+    // Concatenate the 2 char
+    
+    strcpy(buf, one);
+    strcat(buf, two);
+  }
 
+  // If the message to be published is NOT a RNG data 
+  else
+    strcpy(buf, msg.c_str());
+  
   // Publish the ping response
   client.publish("esp32/pinger/RNG", buf);
-  Serial.println("DATA PUBLISHED");
+  Serial.print("DATA PUBLISHED : "); Serial.println(buf);
+  
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -140,7 +156,7 @@ void setup() {
   Serial.println("SLAVE BUOY #1");
 
   // Connect to Wi-Fi network with SSID and password
-  while(wifiConnected == false)
+  while(!wifiConnected)
     createWifi();
   
   // Initialize LoRa
@@ -162,15 +178,21 @@ void loop() {
     reconnect();
   }
   client.loop();
+
+  // If the MQTT connection is established with the slave
+  if(MQTTconnection){
+    // Send a connexion confirmation message to the coast board
+    MQTTstate = "SLAVE BUOY #1 : MQTT connection established";
+    publishMQTT(MQTTstate, false);
+
+    // Change the connection state so †he message is sent just once
+    MQTTconnection = false;
+  }
   
   // If there is something written on Serial2,
-  if (sfReader.read()){                                 // if not, send it over LoRa
-    char *ack;
-    ack = strstr(sfReader.c_str(), "ACK");              // check if the message contains "RNG", if not we don't send it
-    if (!ack){
-        // Publish data
-        publishMQTT(sfReader);
-    }
+  if (sfReader.read()){                               
+    if (sfReader != messageTemp.c_str())                // check if the message written on Serial2 is not the ping request received
+       publishMQTT(sfReader, true);                     // publish data
   }
 
   // Release one byte from the buffer each 9600 baud
