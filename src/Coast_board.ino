@@ -10,66 +10,85 @@
 // Include libraries
 #include <SPI.h>
 #include <LoRa.h>
-#include <WiFi.h>           // WiFi control for ESP32
-#include <ThingsBoard.h>    // ThingsBoard SDK
+#include <WiFi.h>                         
+#include <ThingsBoard.h>                  
 #include "BufferedOutput.h"
 #include "SafeStringReader.h"
 
 
 // Initialize variables
-#define WIFI_AP_NAME       "IPhone de Alyssa"          // WiFi AP : has to be changed
-#define WIFI_PASSWORD      "alyssalyssa"               // WiFi password : has to be changed
+const char* ssid2 = "iphone";
+const char* pass2 = "alyssalyssa";
+  
+const char* ssid = "";            // Wifi AP
+const char* password = "";           // password
+
 #define TOKEN              "9Ftr2eUbUVlcha97AdvB"      // device TOKEN
 #define THINGSBOARD_SERVER  "demo.thingsboard.io"      // ThingsBoard server instance
 
-// Initialize ThingsBoard client
-WiFiClient espClient;
-// Initialize ThingsBoard instance (setup with 256 bytes for JSON buffer)
-ThingsBoardSized<256> tb(espClient);
-// the Wifi radio's status
-int status = WL_IDLE_STATUS;
+WiFiClient espClient;                     // ThingsBoard client
+ThingsBoardSized<256> tb(espClient);      // ThingsBoard instance (setup with 256 bytes for JSON buffer)
+int status = WL_IDLE_STATUS;              // Wifi radio's status
 
-const long frequency = 866E6;   // LoRa Frequency
-const int csPin = 5;            // LoRa radio chip select
-const int resetPin = 4;         // LoRa radio reset
-const int irqPin = 27;          // change for your board; must be a hardware interrupt pin
+const long frequency = 866E6;             // LoRa Frequency
+const int csPin = 5;                      // LoRa radio chip select
+const int resetPin = 4;                   // LoRa radio reset
+const int irqPin = 27;                    // change for your board; must be a hardware interrupt pin
 
-String outgoing[10];            // outgoing message tab (coast can communicate with 10 divers)
-String outgoing_i;              // save the current outgoing message
+String outgoing[10];                      // outgoing message tab (coast can communicate with 10 divers)
 
-byte msgCount = 0;              // count of outgoing messages
-byte localAddress = 0xFF;       // address of this device
-byte destination = 0xAA;        // master buoy
+byte msgCount = 0;                        // count of outgoing messages
+byte localAddress = 0xFF;                 // address of this device
+byte destination = 0xAA;                  // master buoy
 
-int interval = 10000;           // interval between each ping request (ms)
+int interval = 10000;                     // interval between each ping request (ms)
 int i = 0;
 
-String RNGdata[10];             // save the RNG data received from the master
-
 createBufferedOutput(input, 255, DROP_UNTIL_EMPTY);   // create an extra output buffer for the Serial2
-createSafeStringReader(sfReader, 50, "\r\n");         // create SafeStringReader to hold messages written on Serial2
+createSafeStringReader(sfReader, 50, "\r\n\0");         // create SafeStringReader to hold messages written on Serial2
 createSafeString(accoustSignal, 50);                  // SafeString to save the "$G..." message as long as it is the same
 
 
 // WiFi connection
-void InitWiFi()
-{
-  Serial.println("Connecting to AP ...");
-  // attempt to connect to WiFi network
+void InitWiFi(){
+  // Ask the user to enter the name and password of the WiFi AP they want to be connected on
+  Serial.println("Enter WiFi name :");
+  while(ssid == ""){
+    if (Serial.available()){
+      if (sfReader.read())          // if user has entered the WiFi name
+      ssid = sfReader.c_str();      // save it
+      Serial.print(sfReader.length());
+    }
+  }
+  Serial.println(ssid); 
 
-  WiFi.begin(WIFI_AP_NAME, WIFI_PASSWORD);
+  Serial.println("Enter WiFi password :");
+  while(password == ""){
+    if (Serial.available()){
+      if (sfReader.read())             // if user has entered the WiFi password
+      password = sfReader.c_str();     // save it
+    }
+  }
+  Serial.println(password);
+
+  Serial.print("comparaison :"); Serial.print(" "); Serial.print(strcmp(ssid, ssid2)); Serial.println(strcmp(password, pass2));
+  Serial.print(strlen(ssid)); Serial.print(" ");Serial.println(strlen(ssid2));
+  
+  Serial.print("Connecting to AP ...");
+
+  WiFi.begin(ssid, password);
   while (WiFi.status() != WL_CONNECTED) {
     delay(500);
-    Serial.print(".");
+    Serial.println(WiFi.status());
   }
-  Serial.println("Connected to AP");
+  Serial.println("\nConnected to AP");
 }
 
 void reconnect() {
   // Loop until we're reconnected
   status = WiFi.status();
   if ( status != WL_CONNECTED) {
-    WiFi.begin(WIFI_AP_NAME, WIFI_PASSWORD);
+    WiFi.begin(ssid, password);
     while (WiFi.status() != WL_CONNECTED) {
       delay(500);
       Serial.print(".");
@@ -144,24 +163,15 @@ void onReceive(int packetSize) {
   char* MQTT = strstr(incoming.c_str(), "MQTT");    // check if the message contains "MQTT" 
   
   if (!MQTT){                                       // if not, data is sent bc we don't want to send the MQTT confirmation message
-    // Send RNG data to ThingsBoard
-    String RNGdataSorted = sortRNGmessage(incoming);        // sort the RNG data received in the correct order
-    
-    char d[RNGdataSorted.length() + 1];             // convert string into char array
-    strcpy(d, RNGdataSorted.c_str());
-    tb.sendTelemetryString("Buoys RNG", d);         
-
-    // Send the "id" of the diver that has be pinged to ThingsBoard
-    char nameDiver[outgoing[i].length() + 1];       // convert string into char array
-    strcpy(nameDiver, outgoing_i.c_str());
-    tb.sendTelemetryString("Buoys RNG", nameDiver);
-          
-    tb.loop();                                      // process messages 
-
     Serial.print("Sending data to dashboard...");
+
+    char d[incoming.length() + 1];                  // convert string into char array
+    strcpy(d, incoming.c_str());
+  
+    tb.sendTelemetryString("Buoys RNG", d);         // process messages 
+    tb.loop();                                
   }
 }
-
 
 // Counts an interval of time in milliseconds
 boolean runEvery(unsigned long interval) {
@@ -176,84 +186,28 @@ boolean runEvery(unsigned long interval) {
   return false;
 }
 
+// Put each diver ping command in a tab and recover the size of the tab
+int splitPings() {
+  int i = 0; // counts the number of diver to ping
 
-// Split a message in several, put them in a tab and recover the size of the tab
-int split(String tab[], char *str, const char * delimiter) {
-  int i = 0; // counts the number of diver to ping 
+  // Convert String into char array
+  char str[accoustSignal.length() + 1]; 
+  strcpy(str, accoustSignal.c_str()); 
 
-  // Returns first token and save it in the tab
-  char *token = strtok(str, delimiter);
-  tab[i] = token;
+  // Returns first token and save it in the outgoing message tab
+  char *token = strtok(str, ";");
+  outgoing[i] = token;
 
-  // Keep spliting tokens while one of the
+  // Keep printing tokens while one of the
   // delimiters present in str[].
   while (token != NULL) {
-    token = strtok(NULL, delimiter);
+    token = strtok(NULL, ";");
     i++;
-    tab[i] = token;        // save each token in the tab
+    outgoing[i] = token;        // save each token in the outgoing message tab
   }
 
   return i;
 }
-
-
-// Sort the RNG data message received from the master so it always shows data in the same order
-String sortRNGmessage(String messsage){
-  char *Bo1, *Bo2, *Bo3, *ack, *rng, *timeout; int i; String new_RNGdata[6]; String finalMsg = "";
-  
-  // Split the RNG message into submessages every time ther is a new line
-  char str[messsage.length() + 1];   // convert String into char array
-  strcpy(str, messsage.c_str());
-  
-  int tabSize = split(RNGdata, str, "\n");     
-
-  // Empty the new tab that will stock the submessages in the correct order
-  emptyTab(new_RNGdata);
-  
-  // Sort each split in a specific way
-  for(i=0; i<tabSize; i++){
-    Bo1 = strstr(RNGdata[i].c_str(), "B1");    // check if the message contains a specific word
-    Bo2 = strstr(RNGdata[i].c_str(), "B2");
-    Bo3 = strstr(RNGdata[i].c_str(), "B3");
-    ack = strstr(RNGdata[i].c_str(), "ACK");
-    rng = strstr(RNGdata[i].c_str(), "RNG");
-    timeout = strstr(RNGdata[i].c_str(), "timeout");
-
-    // Put the submessage in a specific position in the tab according to its content
-    if(Bo1 && ack)
-      new_RNGdata[0] = RNGdata[i];                // put the submessage in a new tab at the correct position
-    else if(Bo2 && ack)
-      new_RNGdata[1] = RNGdata[i];
-    else if(Bo3 && ack)
-      new_RNGdata[2] = RNGdata[i];
-    else if(Bo1 &&(rng || timeout))
-      new_RNGdata[3] = RNGdata[i];
-    else if(Bo2 &&(rng || timeout))
-      new_RNGdata[4] = RNGdata[i];
-    else if(Bo3 &&(rng || timeout))
-      new_RNGdata[5] = RNGdata[i];
-  }
-
-  // Read every case of the new RNG data tab and put the content in a String, 
-  // to be able to send it to ThingsBoard
-  for(i=0; i<6; i++){
-    finalMsg += "\n";
-    finalMsg += new_RNGdata[i];
-  }
-
-  Serial.println("TAB SORTED");
-  Serial.println(finalMsg);
-  
-  return finalMsg;
-}
-
-
-// Empty the RNGdata tab 
-void emptyTab(String tab[]) {
-  for(int i=0; i<6; i++) // 6 because the RNG data tab sent to ThingsBoard always has 6 cases
-    tab[i] = "";
-}
-
 
 // Remove space(s) from a string
 //char *removeSpaces(const char *str){
@@ -273,7 +227,6 @@ void emptyTab(String tab[]) {
 //  Serial.println(new_str);
 //  return new_str;
 //}
-
 
 // Reconnect the board to ThingsBoard, if needed
 void ThingsBoardConnection(){
@@ -302,16 +255,16 @@ void setup() {
 
   Serial.println("COAST BOARD");
 
+  // Prepare Serial to be read
+  SafeString::setOutput(Serial);      // enable error messages and SafeString.debug() output to be sent to Serial
+  input.connect(Serial);              // where "input" will read from
+  sfReader.connect(input);
+
   // WiFi connection
   InitWiFi();
 
   // Initialize LoRa
   LoRaInit();
-
-  // Prepare Serial to be read
-  SafeString::setOutput(Serial);      // enable error messages and SafeString.debug() output to be sent to Serial
-  input.connect(Serial);              // where "input" will read from
-  sfReader.connect(input);
 }
 
 
@@ -332,10 +285,7 @@ void loop() {
   }
 
   // Put each diver ping command in a tab and recover the size of the tab
-  char str[accoustSignal.length() + 1];   // convert String into char array
-  strcpy(str, accoustSignal.c_str());
-  
-  int sizeOutgoing = split(outgoing, str, ";");
+  int sizeOutgoing = splitPings();
 
   // Send a ping request to each diver one after the other, every time frame
   if (runEvery(interval)) {               // process every 5 seconds
@@ -344,7 +294,11 @@ void loop() {
         i = 0;                            // start again from beginning of tab when end is reached
 
       sendMessage(outgoing[i]);           // send ping to the desired diver
-      outgoing_i = outgoing[i]; 
+      
+      char nameDiver[outgoing[i].length() + 1];         // convert string into char array
+      strcpy(nameDiver, outgoing[i].c_str());
+      tb.sendTelemetryString("Buoys RNG", nameDiver);   // send the "id" of the diver that has be pinged on Thingsboard
+      
       i++;
     }
   }
