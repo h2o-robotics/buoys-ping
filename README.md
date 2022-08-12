@@ -1,8 +1,7 @@
 # Project overview
 
 The objective of this project is the development of an underwater localization and communication system. This system is composed of one
-group of three buoys (GoB), placed on the surface of the water, and one or more acoustic units (AU), immersed under the water. A central unit (CU),  
-located on the shore or onboard a boat controls it.
+group of three buoys (GoB), placed on the surface of the water, and one or more acoustic units (AU), immersed under the water. A central unit (CU),  located on the shore or onboard a boat controls it.
     
 The architecture of the system is as follows: 
 
