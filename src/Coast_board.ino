@@ -2,49 +2,49 @@
   COAST BOARD
   The coast can make 1 master communicate with multiple divers.
 
-  Send the "$G..." message to the master buoy via LoRa every 8 sec,
-  and receive the RNG calculated by the 3 buoys. Then send them to a
-  Thingsboard server.
+  Sends the "$G..." message to the master buoy via LoRa every 10 sec,
+  and receive the RNG calculated by the 3 buoys. It then sends them to
+  a Thingsboard server.
 */
 
 // Include libraries
 #include <SPI.h>
 #include <LoRa.h>
-#include <WiFi.h>           // WiFi control for ESP32
-#include <ThingsBoard.h>    // ThingsBoard SDK
+#include <WiFi.h>          
+#include <ThingsBoard.h>   
 #include "BufferedOutput.h"
 #include "SafeStringReader.h"
 
 
 // Initialize variables
-const char* ssid = "";            // Wifi AP
-const char* password = "";           // password
+char ssid[30];                                        // Wifi AP
+char password[30];                                    // password
 const char* ssid2 = "IPhone de Alyssa";
 const char* pass2 = "alyssalyssa";
 
-#define TOKEN              "9Ftr2eUbUVlcha97AdvB"      // device TOKEN
-#define THINGSBOARD_SERVER  "demo.thingsboard.io"      // ThingsBoard server instance
+#define TOKEN              "9Ftr2eUbUVlcha97AdvB"     // device TOKEN
+#define THINGSBOARD_SERVER  "demo.thingsboard.io"     // ThingsBoard server instance
 
-WiFiClient espClient;                     // ThingsBoard client
-ThingsBoardSized<256> tb(espClient);      // ThingsBoard instance (setup with 256 bytes for JSON buffer)
-int status = WL_IDLE_STATUS;              // Wifi radio's status
+WiFiClient espClient;                                 // ThingsBoard client
+ThingsBoardSized<256> tb(espClient);                  // ThingsBoard instance (setup with 256 bytes for JSON buffer)
+int status = WL_IDLE_STATUS;                          // Wifi radio's status
 
-const long frequency = 866E6;   // LoRa Frequency
-const int csPin = 5;            // LoRa radio chip select
-const int resetPin = 4;         // LoRa radio reset
-const int irqPin = 27;          // change for your board; must be a hardware interrupt pin
+const long frequency = 866E6;                         // LoRa Frequency
+const int csPin = 5;                                  // LoRa radio chip select
+const int resetPin = 4;                               // LoRa radio reset
+const int irqPin = 27;                                // change for your board; must be a hardware interrupt pin
 
-String outgoing[10];            // outgoing messages tab (coast can communicate with 10 divers max)
-String outgoing_i;              // save the current outgoing message
+String outgoing[10];                                  // outgoing messages tab (coast can communicate with 10 divers max)
+String outgoing_i;                                    // save the current outgoing message
 
-byte msgCount = 0;              // count of outgoing messages
-byte localAddress = 0xFF;       // address of this device
-byte destination = 0xAA;        // master buoy
+byte msgCount = 0;                                    // count of outgoing messages
+byte localAddress = 0xFF;                             // address of this device
+byte destination = 0xAA;                              // master buoy
 
-int interval = 10000;           // interval between each ping request (ms)
+int interval = 10000;                                 // interval between each ping request (ms)
 int i = 0;
 
-String RNGdata[10];             // save the RNG data received from the master (non sorted)
+String RNGdata[10];                                   // save the RNG data received from the master (non sorted)
 
 createBufferedOutput(input, 255, DROP_UNTIL_EMPTY);   // create an extra output buffer for the Serial2
 createSafeStringReader(sfReader, 50, "\r\n");         // create SafeStringReader to hold messages written on Serial2
@@ -55,27 +55,18 @@ createSafeString(accoustSignal, 50);                  // SafeString to save the 
 void InitWiFi(){
   // Ask the user to enter the name and password of the WiFi AP they want to be connected on
   Serial.println("Enter WiFi name :");
-  while(ssid == ""){
-    if (Serial.available()){
-      if (sfReader.read())          // if user has entered the WiFi name
-      ssid = sfReader.c_str();      // save it
-      Serial.print(sfReader.length());
-    }
-  }
+  while (Serial.available() == 0 );             
+  String entry = Serial.readString();           // read the entry from Serial Monitor
+  entry.toCharArray(ssid,entry.length());       // convert String into char array
   Serial.println(ssid); 
 
   Serial.println("Enter WiFi password :");
-  while(password == ""){
-    if (Serial.available()){
-      if (sfReader.read())             // if user has entered the WiFi password
-      password = sfReader.c_str();     // save it
-    }
-  }
+  while (Serial.available() == 0 );           
+  entry = Serial.readString();
+  entry.toCharArray(password,entry.length());   
   Serial.println(password);
 
-  Serial.print("comparaison :"); Serial.print(" "); Serial.print(strcmp(ssid, ssid2)); Serial.println(strcmp(password, pass2));
-  Serial.print(strlen(ssid)); Serial.print(" ");Serial.println(strlen(ssid2));
-  
+  // Connect the board to the selected WiFi AP
   Serial.print("Connecting to AP ...");
 
   WiFi.begin(ssid, password);
