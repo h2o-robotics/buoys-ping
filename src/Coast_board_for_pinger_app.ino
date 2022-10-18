@@ -1,4 +1,4 @@
-</*
+/*
   COAST BOARD
   The coast can make 1 master communicate with multiple divers.
 
