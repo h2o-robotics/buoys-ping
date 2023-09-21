@@ -10,4 +10,7 @@
 // Connect the board to a Wifi Access Point
 void connect_to_wifi();
 
+// Create Wifi connection from the ESP32
+bool create_wifi_ap();
+
 #endif

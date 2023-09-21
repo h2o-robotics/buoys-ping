@@ -13,7 +13,6 @@ void LORA_init(){
   Serial.println("LoRa init succeeded.\n");
 }
 
-// Send a message to the coast board
 void LORA_sendMessage(SafeString& outgoing, byte destination) {
   LoRa.beginPacket();                   // start packet
   LoRa.write(destination);              // add destination address

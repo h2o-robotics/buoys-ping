@@ -13,7 +13,10 @@
 #define LORA_localAddress     0xAA             // address of this device
 #define LORA_destinationCoast 0xFF             // destination of board on the coast
 
+// Initialize LORA communication
 void LORA_init();
+
+// Send a LORA message with "outgoing" data to "destination" device
 void LORA_sendMessage(SafeString& outgoing, byte destination);
 
 #endif

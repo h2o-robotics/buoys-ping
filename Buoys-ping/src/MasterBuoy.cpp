@@ -5,6 +5,8 @@
   via LoRa to the board on the coast.
 */
 
+#ifdef MASTER_BUOY
+
 #include "MasterBuoy.h"
 
 // -- MQTT BROKER CONFIG --
@@ -314,3 +316,5 @@ void setup() {
 }
 
 void loop() {}
+
+#endif
