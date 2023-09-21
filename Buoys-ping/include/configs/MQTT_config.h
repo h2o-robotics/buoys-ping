@@ -16,7 +16,8 @@
         #error "Slave ID not defined!"
     #endif
 
-    #define STR(ID) #ID
+    #define STR(ID) STR2(ID)
+    #define STR2(ID) #ID
     #define MQTT_username "slave" STR(SLAVE_ID)
 #endif
 

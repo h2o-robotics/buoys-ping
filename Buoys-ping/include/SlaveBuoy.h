@@ -8,8 +8,8 @@
 #include "SafeStringReader.h"
 #include "BufferedOutput.h"
 
-#include "WiFi_config.h"
-#include "MQTT_config.h"
+#include "configs/WiFi_config.h"
+#include "configs/MQTT_config.h"
 
 void setup();
 void loop();

@@ -1,4 +1,4 @@
-#include "LoRa_config.h"
+#include "configs/LoRa_config.h"
 
 byte msgCount = 0;                 // count of outgoing messages
 
