@@ -13,10 +13,10 @@ void LORA_init(){
   Serial.println("LoRa init succeeded.\n");
 }
 
-void LORA_sendMessage(SafeString& outgoing, byte destination) {
+void LORA_sendMessage(String& outgoing, byte sourceAddress, byte destinationAddress) {
   LoRa.beginPacket();                   // start packet
-  LoRa.write(destination);              // add destination address
-  LoRa.write(LORA_localAddress);        // add sender address
+  LoRa.write(destinationAddress);       // add destination address
+  LoRa.write(sourceAddress);            // add sender address
   LoRa.write(msgCount);                 // add message ID
   LoRa.write(outgoing.length());        // add payload length
   LoRa.print(outgoing);                 // add payload

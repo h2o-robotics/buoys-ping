@@ -110,7 +110,7 @@ void setup() {
   // Connect to Wi-Fi network with SSID and password
   bool wifiConnected = false;
   while(!wifiConnected)
-    wifiConnected = create_wifi_ap();
+    wifiConnected = WIFI_create_ap();
 
   // Connect to MQTT broker
   client.setServer(mqtt_broker, MQTT_port);

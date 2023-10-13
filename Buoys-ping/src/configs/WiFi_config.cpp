@@ -2,7 +2,10 @@
 
 WiFiServer server(80);
 
-void connect_to_wifi(){
+char wifi_ssid[30];                                        // Wifi AP
+char wifi_password[30];                                    // password
+
+void WIFI_connect_macro(){
   Serial.println();
   Serial.print("Connecting to ");
   Serial.println(WIFI_SSID);
@@ -20,7 +23,49 @@ void connect_to_wifi(){
   Serial.println(WiFi.localIP());
 }
 
-bool create_wifi_ap(){
+void WIFI_connect_userPrompt(){
+
+  // Ask the user to enter the name and password of the WiFi AP they want to be connected on
+  Serial.println("Enter WiFi name :");
+  while (Serial.available() == 0 );             
+  
+  String entry = Serial.readString();              // read the entry from Serial Monitor
+  entry.toCharArray(wifi_ssid, entry.length());    // convert String into char array
+  Serial.println(wifi_ssid); 
+
+  Serial.println("Enter WiFi password :");
+  while (Serial.available() == 0 );           
+  
+  entry = Serial.readString();
+  entry.toCharArray(wifi_password, entry.length());   
+  Serial.println(wifi_password);
+
+  // Connect the board to the selected WiFi AP
+  Serial.print("Connecting to AP ...");
+
+  WiFi.begin(wifi_ssid, wifi_password);
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500);
+    Serial.println(WiFi.status());
+  }
+
+  Serial.println("\nConnected to AP");
+}
+
+void WIFI_force_reconnect(){
+  if ( WiFi.status() != WL_CONNECTED ) {
+    WiFi.begin(wifi_ssid, wifi_password);
+    
+    while (WiFi.status() != WL_CONNECTED) {
+      delay(500);
+      Serial.print(".");
+    }
+
+    Serial.println("Connected to AP");
+  }
+}
+
+bool WIFI_create_ap(){
   try{
     Serial.print("Setting AP (Access Point)…");
     WiFi.softAP(WIFI_SSID, WIFI_PASSWORD);

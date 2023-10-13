@@ -162,12 +162,12 @@ void onReceive_LoRa(int packetSize) {
   }
 
   // If the recipient isn't this device or broadcast,
-  if (recipient != LORA_localAddress || sender != LORA_destinationCoast) {
+  if (recipient != LORA_MasterAddress || sender != LORA_CoastAddress) {
     return;                             // skip rest of function
   }
 
   // If message received is from the coast, transmit it to buoys
-  if (sender == LORA_destinationCoast){
+  if (sender == LORA_CoastAddress){
     accoustic = incoming.c_str();      // print the incoming message in the SafeString
     
     publishMQTT(accoustic, 1);         // send the ping request to slave buoys via MQTT
@@ -258,7 +258,8 @@ void masterBuoyLoop(void * parameter){
     // If the MQTT connection is established with 1 of the 3 buoys
     if(MQTTconnection){
       // Send a connexion confirmation message to the coast board
-      LORA_sendMessage(msgToCoast, LORA_destinationCoast);
+      String msgToCoast_str = msgToCoast.c_str();
+      LORA_sendMessage(msgToCoast_str, LORA_MasterAddress, LORA_CoastAddress);
 
       // Change the connection state so †he message is sent just once
       MQTTconnection = false;
@@ -273,7 +274,8 @@ void masterBuoyLoop(void * parameter){
     // Send the RNG tab to the board on the coast over LoRa
     if(isTabFilled()){                            // if at least 1 of the 3 RNG is received
      msgToCoast = range.c_str();
-     LORA_sendMessage(msgToCoast, LORA_destinationCoast);
+     
+     LORA_sendMessage(range, LORA_MasterAddress, LORA_CoastAddress);
      Serial.println("MESSAGE SENT.\n");
 
      // Reinitialization of the variable for the receive check
@@ -308,7 +310,7 @@ void setup() {
   Serial.println("MAIN BUOY");
 
   // Connect to Wifi AP
-  connect_to_wifi();
+  WIFI_connect_macro();
 
   // Multi threading 
   xTaskCreatePinnedToCore(brokerLoop,    "Broker Task",    10000,    NULL,    1,    &Task2,    0);
