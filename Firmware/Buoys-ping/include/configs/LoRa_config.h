@@ -17,6 +17,6 @@
 void LORA_init();
 
 // Send a LORA message with "outgoing" data from "sourceAddress" to "destinationAddress"
-void LORA_sendMessage(String& outgoing, byte sourceAddress, byte destinationAddress);
+void LORA_sendMessage(SafeString& outgoing, byte sourceAddress, byte destinationAddress);
 
 #endif

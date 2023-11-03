@@ -6,8 +6,11 @@
 #include <PubSubClient.h>
 #include <sMQTTBroker.h>
 
-#define MQTT_password "public"
-#define MQTT_port     1883
+#define MQTT_localhost      "127.0.0.1"
+#define MQTT_serverAddress  "192.168.4.1"
+
+#define MQTT_password       "public"
+#define MQTT_port           1883
 
 #ifdef MASTER_BUOY
     #define MQTT_username "master"
