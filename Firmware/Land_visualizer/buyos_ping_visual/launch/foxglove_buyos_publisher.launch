@@ -1,0 +1,4 @@
+<launch>
+    <include file="$(find foxglove_bridge)/launch/foxglove_bridge.launch"/>
+    <node pkg="buyos_ping_visual" name="buyos_location_publisher" type="buyos_location_publisher.py" />
+</launch>
